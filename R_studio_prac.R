@@ -9,3 +9,4 @@ sqldf('select e.*
                     from employees
                     where hire_date=e.hire_date
                     and employee_id<>e.employee_id)')
+#뭐지
