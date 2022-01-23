@@ -106,6 +106,7 @@ employees%>%
   
 #22.01.23 
 #[문제] 1~100의 정수를 차례로 출력하되 3의 배수에서는 숫자 대신 *을 출력하는 FOR문 코드를 작성하시오
+#1
 num<-NULL
 for(i in 1:100){
   n<-NULL
@@ -117,6 +118,14 @@ for(i in 1:100){
   num<-c(num,n)
 }
 num
+#2
+for(i in 1:100){
+  if(i%%3!=0){
+    cat(i,' ', append = T)
+  }else{
+    cat('*',' ', append= T)
+  }
+}
 
 
 #[문제] 급여가 3000 이하이고 또는 JOB_ID가 ST_CLERK인 사원들의 employee_id, salary, job_id, department_name을 출력해주세요
@@ -138,7 +147,7 @@ sqldf::sqldf('SELECT employee_id, salary, department_id
              AND salary >= 5000')
 
 
-#[문제] 입력값으로 들어온 수에 대한 짝수의 합을 구하는 hap함수를 생성하세요
+#[문제] 입력값으로 들어온 수에 대한 짝수의 합을 구하는 hap함수를 생성하세요 hap(1:10)
 s<-NULL
 hap <- function(...){
   x<-c(...)
@@ -153,6 +162,7 @@ hap(1:10)
 
 
 #[문제] JOB_ID별 급여를 가장 적게 받는 사원들의 employee_id, last_name, salary, job_id를 추출해 주세요.
+#1
 x<-employees%>%
   dplyr::group_by(JOB_ID)%>%
   dplyr::mutate(min_sal=min(SALARY))%>%
@@ -160,14 +170,26 @@ x<-employees%>%
   dplyr::select(EMPLOYEE_ID,LAST_NAME,SALARY,JOB_ID)%>%
   arrange(4)
 data.frame(x)
+#2
+plyr::ddply(employees[,c('EMPLOYEE_ID','LAST_NAME','SALARY','JOB_ID')],
+            'JOB_ID',subset,SALARY==min(SALARY))
 
 #[문제] 부서별 최고급여를 받고 있는 사원의 employee_id, last_name, salary, department_id를 출력해주세요.
+#1
 employees%>%
   dplyr::group_by(DEPARTMENT_ID)%>%
   dplyr::mutate(max_sal=max(SALARY))%>%
   dplyr::filter(SALARY==max_sal)%>%
   dplyr::select(EMPLOYEE_ID,LAST_NAME,SALARY,DEPARTMENT_ID)%>%
   dplyr::arrange(DEPARTMENT_ID)
+#2
+plyr::ddply(employees[,c('EMPLOYEE_ID','LAST_NAME','SALARY','DEPARTMENT_ID')],
+            'DEPARTMENT_ID',subset,SALARY==max(SALARY))
+#3
+sqldf("select *
+        from (select employee_id, last_name, salary, department_id, max(salary) over(partition by department_id) max_sal
+              from employees)
+              where salary = max_sal")
 
 
 #[문제] 홀수달에 입사한 사원들과 짝수달에 입사한 사원들을 구분하고 급여를 내림차순으로 출력하시오
@@ -179,10 +201,6 @@ x<-employees%>%
 data.frame(x)
 
 #[문제] 년도별(행) 분기별(열) 총액급여, 행의 합, 열의 합을 출력, 분기별,년도별 평균도 출력 
-x<-tapply(employees$SALARY,list(lubridate::year(employees$HIRE_DATE),lubridate::quarter(employees$HIRE_DATE)),sum)
-year<-apply(x,MARGIN = 1,sum,na.rm=T)
-x<-cbind(x,year)
-
 x
 names(x) <- c('1분기','2분기','3분기','4분기')
 x$분기총합 <- apply(x,MARGIN = 1,sum)
@@ -202,12 +220,17 @@ trunc(x)
 
 
 #[문제] 부서별 최대급여를 받고있는 사원들의 정보를 출력(단, COMMISSION_PCT가 NA값이 아닌 것만)하시오
+#1
 x<-employees%>%
   dplyr::filter(!is.na(COMMISSION_PCT))%>%
   dplyr::group_by(DEPARTMENT_ID)%>%
   dplyr::mutate(m_s=max(SALARY))%>%
   dplyr::filter(SALARY==m_s)
 data.frame(x)
+#2
+a <- aggregate(SALARY ~ DEPARTMENT_ID, employees,max)
+a <- merge(a,employees,by=c('DEPARTMENT_ID','SALARY'))
+a[!is.na(a$COMMISSION_PCT),]  
 
 #[문제] last_name의 글자의 수가 10이상인 사원의 employee_id, last_name 출력하세요.(22-01-11)
 employees%>%
@@ -219,7 +242,7 @@ employees%>%
 # [보기]
 # 5 * 1 = 5    6 * 1 = 6    7 * 1 = 7 
 # 5 * 2 = 10    6 * 2 = 12    7 * 2 = 14
-
+#1 컬럼별로 구분
 gugudan<-NULL
 for (i in 5:7) {
   gu<-NULL
@@ -229,19 +252,41 @@ for (i in 5:7) {
   gugudan<-cbind(gugudan,gu)
 }
 gugudan
+#2
+for(i in 1:9){
+  for(j in 5:7){
+    cat(j,' * ',i,' = ',i*j,'\t')
+  }
+  cat('\n')
+}
 
 #[문제]  70번 부서 사원이면서 급여는 10000이상 받는 사원들의 LAST_NAME, HIRE_DATE,SALARY,DEPARTMENT_ID를 출력해주세요. 
+#1
 employees%>%
   dplyr::filter(DEPARTMENT_ID==70&SALARY>=10000)%>%
   dplyr::select(LAST_NAME,HIRE_DATE,SALARY,DEPARTMENT_ID)
+#2
+employees[which(employees$DEPARTMENT_ID==70 & employees$SALARY >= 10000),
+          c('LAST_NAME', 'HIRE_DATE','SALARY','DEPARTMENT_ID')]
+#3
+subset(employees,DEPARTMENT_ID==70 & SALARY >= 10000,
+       select=c(LAST_NAME, HIRE_DATE,SALARY,DEPARTMENT_ID))
 
 
-#[문제] 사원의 이름과 급여, 급여가 5000이하면 "C", 급여가 12000이하면 "B", 급여가 17000이하면 "A", 나머지 경우 "S"를
-출력해주세요.
+#[문제] 사원의 이름과 급여, 급여가 5000이하면 "C", 급여가 12000이하면 "B", 급여가 17000이하면 "A", 나머지 경우 "S"를 출력해주세요.
+#1
 employees%>%
   dplyr::mutate(grade=ifelse(SALARY<=5000,'C',ifelse(SALARY<=12000,'B',ifelse(SALARY<=17000,'A','S'))))%>%
   dplyr::select(LAST_NAME,SALARY,grade)
-
+#2
+sqldf("select last_name, salary,
+              case
+                 when salary <= 5000 then 'C'
+                 when salary <= 12000 then 'B'
+                 when salary <= 17000 then 'A'
+                 else 'S'
+                 end 등급
+      from employees")
 
 #[문제] commission_pct에 NA가아닌 사원들의 이름,잡아이디,급여,부서아이디,부서명을 출력해주세요. 단 부서가 없는 사원도 출력해주세요.
 x<-merge(employees[!is.na(employees$COMMISSION_PCT),],departments,by='DEPARTMENT_ID',all.x=T)
@@ -260,18 +305,33 @@ var(c(1,2,3,5,8))
 
 
 #[문제] fruits_sales.csv file 읽어 들인 후 과일 이름별, 년도별 판매량을 구한 후 행의 합과 열의 합을 구하세요
+#1
 x<-tapply(sales$qty,list(sales$name,sales$year),sum)
 r<-apply(x,MARGIN=2,sum)
 x<-rbind(x,r)
 c<-apply(x,MARGIN = 1,sum)
-cbind(x,c)
-
-
+res<-cbind(x,c)
+res<-data.frame(res)
+rownames(res)[nrow(x)]<-'합'
+colnames(res)[ncol(x)]<-'합'
+res
+#2
+x<-tapply(sales$qty,list(sales$year,sales$name),sum,default=0)
+class(x)
+x<-data.frame(x)
+x$행의합<-apply(x,1,sum)
+x
+x<-rbind(x,apply(x,2,sum))
+rownames(x)[nrow(x)]<-'열의 합'
+x
 #[문제] JOB_ID별 인원수를 출력해주세요.
+#1
 x<-employees%>%
   dplyr::group_by(JOB_ID)%>%
   dplyr::count()
 data.frame(x)
+#2
+aggregate(EMPLOYEE_ID~JOB_ID,employees, NROW)
 
 #[문제] last_name, salary, 급여가 10000  이상이면 H, 5000이상 10000보다 작으면 M, 나머지는 L가 입력되어 있는 새로운 컬럼을 생성하세요.  
 employees%>%
