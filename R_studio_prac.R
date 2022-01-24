@@ -1,12 +1,17 @@
 employees<-read.csv('C:/data_bigdata/emp_mod.csv',header=T)
 departments<-read.csv('C:/data_bigdata/dept.csv',header=T)
 sales<-read.csv('C:/data_bigdata/fruits_sales.csv',header=T)
+blood<-read.csv('C:/data_bigdata/blood.csv',header=T)
+survey<-read.csv('C:/data_bigdata/survey.csv',header=F)
 install.packages('plyr')
 library(plyr)
 install.packages("dplyr")
 library(dplyr)
 install.packages("sqldf")
 library(sqldf)
+library(RColorBrewer)
+install.packages("plotrix")
+library(plotrix)
 
 #22.01.20
 #[문제] COMMISSION_PCT가 NA인 사원들 급여 평균과 
@@ -193,15 +198,16 @@ sqldf("select *
 
 
 #[문제] 홀수달에 입사한 사원들과 짝수달에 입사한 사원들을 구분하고 급여를 내림차순으로 출력하시오
-x<-employees%>%
-  dplyr::mutate(MON=ifelse(lubridate::month(HIRE_DATE)%%2==0,'even','odd'))%>%
-  dplyr::group_by(MON)%>%
-  dplyr::mutate(RANK=dense_rank(desc(SALARY)))%>%
-  dplyr::arrange(MON,RANK)
-data.frame(x)
+  x<-employees%>%
+    dplyr::mutate(MON=ifelse(lubridate::month(HIRE_DATE)%%2==0,'even','odd'))%>%
+    dplyr::group_by(MON)%>%
+    dplyr::mutate(RANK=dense_rank(desc(SALARY)))%>%
+    dplyr::arrange(MON,RANK)
+  data.frame(x)
 
 #[문제] 년도별(행) 분기별(열) 총액급여, 행의 합, 열의 합을 출력, 분기별,년도별 평균도 출력 
-x
+x <- tapply(employees$SALARY,list(lubridate::year(employees$HIRE_DATE),lubridate::quarter(employees$HIRE_DATE)),sum,default = 0)
+x <- data.frame(x)
 names(x) <- c('1분기','2분기','3분기','4분기')
 x$분기총합 <- apply(x,MARGIN = 1,sum)
 x
@@ -337,3 +343,70 @@ aggregate(EMPLOYEE_ID~JOB_ID,employees, NROW)
 employees%>%
   dplyr::mutate(grade=ifelse(SALARY>=10000,'H',ifelse(SALARY>=5000,'M','L')))%>%
   dplyr::select(LAST_NAME,SALARY,grade)
+
+#22.01.24
+#[문제] employees 파일에서 입사년도별, job_id별 입사자수를 구하고, 세로형 그래프로 표현해주세요.
+y<-xtabs(~JOB_ID+lubridate::year(HIRE_DATE),employees)
+addmargins(y,1)
+barplot(height=y,
+        main='입사년도별, JOB_id별 인원수',
+        las=2,
+        ylim = c(0,30),
+        density = 60,
+        col=rainbow(ncol(y)))
+legend('topleft',legend=rownames(y),
+       col=brewer.pal(12,'Set3'),
+       pch=15, cex=0.7)
+display.brewer.all() #색상 보기
+?barplot
+
+#[문제]employees중 manager가 아닌 사원들의 부서별 SALARY 평균을 출력하고 이를 세로형 그래프로 나타내주세요.(부서 없는 정보 제외)
+#sqldf
+x<-sqldf('SELECT department_id, avg_sal
+FROM(SELECT department_id, avg(salary) over(partition by department_id) avg_sal
+      FROM employees e
+      WHERE not exists (SELECT 1
+                        FROM employees
+                        WHERE e.employee_id = manager_id)
+        union
+        SELECT department_id, NULL
+        FROM departments)
+WHERE avg_sal is not null
+AND department_id is not null')
+x
+#dplyr
+x<-employees%>%
+  filter(!EMPLOYEE_ID %in% MANAGER_ID)%>%
+  group_by(DEPARTMENT_ID)%>%
+  summarise(mean(SALARY))
+x<-data.frame(x)
+x<-x[-11,]
+x<-round(x)
+
+bar_x<-barplot(height=x$mean.SALARY.,
+        names.arg =x$DEPARTMENT_ID,
+        main='부서별 비관리자 평균급여',
+        xlab='부서번호',ylab='평균급여(만원)',
+        ylim=c(0,10500),
+        col=heat.colors(14))
+text(x=bar_x,y=x$mean.SALARY.,
+    labels =x$mean.SALARY. ,
+     cex=0.7,
+     pos=3)
+#[문제] 부서별 최고 급여자들의 급여와 최저 급여자들의 급여를 세로형 그래프로 비교하세요.
+x<-employees%>%
+  group_by(DEPARTMENT_ID)%>%
+  summarise(max=max(SALARY),
+            min=min(SALARY))
+x<-data.frame(x)
+x<-x[-which(is.na(x)),]
+y<-t(x)
+colnames(y)<-y[1,]
+z<-y[2:3,]
+result<-barplot(height = z,
+        beside=T,
+        xlab = '부서번호',ylab='급여(만원)',
+        ylim=c(0,25000),
+        legend.text=rownames(z),
+        col=c('khaki4','ivory'))
+
