@@ -410,3 +410,60 @@ result<-barplot(height = z,
         legend.text=rownames(z),
         col=c('khaki4','ivory'))
 
+#22.01.25
+#[문제]kosis에서 하루 1회이상 외식률 2010년~2019년 자료를 추출하여, 연령별2별로 그래프를 출력하세요.
+eat<-read.csv('C:/data_bigdata/하루_1회_이상_외식률_추이.csv',header=T)
+head(eat)
+
+eating<-eat[eat$특성별.1. %in% c('연령별2','소득수준별'),c('특성별.1.','특성별.2.','X2010.1','X2011.1',
+                                                'X2012.1','X2013.1','X2014.1','X2015.1','X2016.1','X2017.1','X2018.1','X2019.1')]
+eat_age<-eating[eating$특성별.1.=='연령별2',]
+eat_age<-eat_age[,-1]
+eat_age1<-data.frame(t(eat_age))
+colnames(eat_age1)<-eat_age1[1,]
+eat_age1<-eat_age1[-1,]
+rownames(eat_age1)<-c(2010:2019)
+eat_age1
+eat_age1[,1:ncol(eat_age1)]<- lapply(eat_age1[,1:ncol(eat_age1)],as.numeric)
+str(eat_age1)
+
+barplot(height = as.matrix(eat_age1),
+        beside=F,
+        col=terrain.colors(14),
+        las=2,
+        ylim = c(0,500),
+        legend.text = rownames(eat_age1))
+#[문제]kosis에서 하루 1회이상 외식률 2010년~2019년 자료를 추출하여, 연령별1별로 원형그래프를 출력하세요.
+#이때, plots화면에 년도별로 다른 그래프를 그리세요.
+eating<-eat[eat$특성별.1.=='연령별1',c('특성별.2.','X2010.1','X2011.1','X2012.1','X2013.1','X2014.1','X2015.1','X2016.1','X2017.1','X2018.1','X2019.1')]
+rownames(eating)<-eating[,1]
+eating<-eating[,-1]
+names(eating)<-c(2010:2019)
+eating[,1:ncol(eating)]<-lapply(eating[,1:ncol(eating)],as.numeric)
+str(eating)
+
+par(mfrow=c(2,5))
+for (i in 1:ncol(eating)){
+  pie(eating[,i],labels = paste0(rownames(eating),' ',eating[,i],'%'),
+      main=paste(colnames(eating)[i],'년도 연령별 외식률'),
+      cex=1)
+}
+graphics.off()
+
+#[문제]employees에서 각 입사연도별 JOB_ID 비율의 원형그래프를 한화면에 입사연도 개수만큼 출력하세요.
+#min label 나오지 않게 개선 필요
+head(employees)
+emp<-tapply(employees$EMPLOYEE_ID,list(employees$JOB_ID,lubridate::year(employees$HIRE_DATE)),length,default=0)
+str(emp)
+emp<-data.frame(emp)
+p_emp<-t
+colnames(emp)<-c(2001:2008)
+par(mfrow=c(4,2))
+for(i in 1:ncol(emp)){
+  pie(emp[,i],labels=paste0(rownames(emp),'(',round(emp[emp[,i]!=max(emp[i]),i]/sum(emp[,i]),2),'%)'),
+      main=paste(colnames(emp)[i],'년도 JOB_ID별 입사인원'),
+      cex=1,
+      col=brewer.pal(8,'Set3'))
+}
+ 
+    
