@@ -465,5 +465,34 @@ for(i in 1:ncol(emp)){
       cex=1,
       col=brewer.pal(8,'Set3'))
 }
- 
-    
+           
+#22.01.26
+#[문제]sale파일에서 연도별 판매량을 plot을 사용해서 비교하세요.
+apple<-sales[sales$name=='apple',c('year','qty')]
+banana<-sales[sales$name=='banana',c('year','qty')]
+orange<-sales[sales$name=='orange',c('year','qty')]
+berry<-sales[sales$name=='berry',c('year','qty')]
+
+plot(apple$year,apple$qty,ylim=c(0,20),xlab='년도',ylab='',axes=F,type='o',col='red2')
+lines(banana$year,banana$qty,type='o',col='yellow3')
+lines(orange$year,orange$qty,type='o',col='orange2')
+lines(berry$year,berry$qty,type='o',col='purple2')
+legend('topleft',legend = c('apple','banana','orange','berry'),pch = 15,
+       col=c('red2','yellow3','orange2','purple2'))
+axis(1,at=2014:2017)
+axis(2)
+
+#[문제]1~1000숫자까지 3,6,9가 들어간 숫자에는 숫자 대신 '짝'을 출력하는 v369 함수를 만드세요.
+x<-c(1:100)
+grep('3',x,value=T)
+grep(0,c('3','6','9'),value=T)
+
+v369 <-function(x){
+  ifelse(grep(x,c('3','6','9'),value=T) %in% c('3','6','9'),print('짝'),print(x))
+}
+v369(3)
+v369(7)
+
+v369 <-function(x){
+  ifelse(grep(x,c('3','6','9'),value=T) %in% c('3','6','9'),print('짝'),print(x))
+}
