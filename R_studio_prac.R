@@ -393,6 +393,27 @@ text(x=bar_x,y=x$mean.SALARY.,
     labels =x$mean.SALARY. ,
      cex=0.7,
      pos=3)
+#2
+x<-employees%>%
+  filter(!EMPLOYEE_ID %in% MANAGER_ID)%>%
+  group_by(DEPARTMENT_ID)%>%
+  summarise(mean(SALARY))
+x<-data.frame(x)
+x<-x[-11,]
+x<-round(x)
+class(x)
+names(x)<-c('부서','평균급여')
+
+ggplot(data=x,aes(x=as.factor(부서),y=평균급여,fill=as.factor(평균급여))) +
+  geom_bar(stat='identity')+ 
+  labs(title='비관리자의 평균 급여',xlab='부서',ylab='천원')+
+  geom_text(aes(label=평균급여),position=position_dodge(0.7),colour='darkred')+
+  theme_bw()+
+  theme(legend.position = 'none')+
+  # scale_fill_brewer(palette='Set3')
+  scale_fill_manual(values=brewer.pal(10, 'Set3'))
+
+
 #[문제] 부서별 최고 급여자들의 급여와 최저 급여자들의 급여를 세로형 그래프로 비교하세요.
 x<-employees%>%
   group_by(DEPARTMENT_ID)%>%
