@@ -483,16 +483,67 @@ axis(1,at=2014:2017)
 axis(2)
 
 #[문제]1~1000숫자까지 3,6,9가 들어간 숫자에는 숫자 대신 '짝'을 출력하는 v369 함수를 만드세요.
-x<-c(1:100)
-grep('3',x,value=T)
-grep(0,c('3','6','9'),value=T)
+
+grep(6,c('3','6','9'),value=T)
 
 v369 <-function(x){
-  ifelse(grep(x,c('3','6','9'),value=T) %in% c('3','6','9'),print('짝'),print(x))
+  ifelse(grep(as.character(x),c('3','6','9'),value=T) %in% c('3','6','9'),print('짝'),print(x))
 }
 v369(3)
-v369(7)
+v369(13)
 
 v369 <-function(x){
   ifelse(grep(x,c('3','6','9'),value=T) %in% c('3','6','9'),print('짝'),print(x))
 }
+#22.01.27
+
+v369 <-function(x){
+  pattern<-NULL
+  pattern<-paste0('^\\w*',x,'\\&$')
+  ifelse(grep(pattern,c('3','6','9'),value=T) %in% c('3','6','9'),print('짝'),print(x))
+}
+v369(3)
+v369(13)
+x<-13
+strsplit(as.character(x), "")
+pattern<-paste0('^\\w*',3,'\\&$')
+grep('^\\w*3\\w*$',c('3','6','9'),value=T) #grep함수:특정 문자가 포함된 리스트 출력
+
+#369에 짝 출력
+v369<-function(x){
+  y<-NULL
+  k<-NULL
+  y<-strsplit(as.character(x), "") #숫자를 벡터로 쪼개기
+  z<-NULL
+  for(i in 1:length(unlist(y))){
+    z<-c(z,which(unlist(y)[[i]]==c('3','6','9')))
+  }    
+  if(sum(z)>=1){
+      k<-'짝'
+    }else{
+      return(x)
+    }
+  return(k)
+}
+v369(1)
+v369(31)
+#369 개수만큼 짝 출력
+v369<-function(x){
+  y<-NULL
+  k<-NULL
+  y<-strsplit(as.character(x), "") #숫자를 벡터로 쪼개기
+  z<-NULL
+  for(i in 1:length(unlist(y))){
+    z<-c(z,unlist(y)[[i]] %in% c('3','6','9'))
+  }    
+  if(sum(z)>=1){
+    for(j in 1:sum(z)){
+      k<-paste0(k,'짝')
+    }
+  }else{
+    return(x)
+  }
+  return(k)
+}
+v369(333)
+v369(6)
