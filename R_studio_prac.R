@@ -482,7 +482,7 @@ legend('topleft',legend = c('apple','banana','orange','berry'),pch = 15,
 axis(1,at=2014:2017)
 axis(2)
 
-#[문제]1~1000숫자까지 3,6,9가 들어간 숫자에는 숫자 대신 '짝'을 출력하는 v369 함수를 만드세요.
+#[문제]3,6,9가 들어간 숫자에는 숫자 대신 '짝'을 출력하는 v369 함수를 만드세요.
 
 grep(6,c('3','6','9'),value=T)
 
@@ -513,7 +513,7 @@ grep('^\\w*3\\w*$',c('3','6','9'),value=T) #grep함수:특정 문자가 포함�
 v369<-function(x){
   y<-NULL
   k<-NULL
-  y<-strsplit(as.character(x), "") #숫자를 벡터로 쪼개기
+  y<-strsplit(as.character(x), "") #숫자를 쪼개기
   z<-NULL
   for(i in 1:length(unlist(y))){
     z<-c(z,which(unlist(y)[[i]]==c('3','6','9')))
@@ -531,7 +531,7 @@ v369(31)
 v369<-function(x){
   y<-NULL
   k<-NULL
-  y<-strsplit(as.character(x), "") #숫자를 벡터로 쪼개기
+  y<-strsplit(as.character(x), "")
   z<-NULL
   for(i in 1:length(unlist(y))){
     z<-c(z,unlist(y)[[i]] %in% c('3','6','9'))
@@ -547,3 +547,18 @@ v369<-function(x){
 }
 v369(333)
 v369(6)
+
+#[문제]숫자를 넣으면 해당 숫자의 구구단이 출력되는 gugudan 함수를 만드세요.
+
+gugudan<-function(x){
+  for (i in x){
+    y<-NULL
+    for (j in 1:9){
+      cat(y,i,' x ',j,' = ',i*j,'\n')
+    }
+  }
+}
+gugudan(2)
+
+
+
