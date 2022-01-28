@@ -12,6 +12,15 @@ library(sqldf)
 library(RColorBrewer)
 install.packages("plotrix")
 library(plotrix)
+install.packages("ggfortify") #data.frame을 전환없이 바로 시계열 그래프로 그릴 수 있음.
+library(ggfortify)
+install.packages("zoo")
+library(zoo)
+
+
+
+
+
 
 #22.01.20
 #[문제] COMMISSION_PCT가 NA인 사원들 급여 평균과 
@@ -581,5 +590,30 @@ gugudan<-function(x){
 }
 gugudan(2)
 
+#22.01.28
+#AirPassengers로 년도별 탑승객 수 시각화하기
+AirPassengers
+library(reshape2)
+str(AirPassengers)
+names(AirPassengers)
+class(AirPassengers)
+
+plot(AirPassengers,ylab="AirPassengers('000s)",lwd=2)
+
+?timestamp
+air<-data.frame(.preformat.ts(AirPassengers))
+air
+air$year<-rownames(air)
+
+airs<-melt(air,measure.vars =c(colnames(air)[-13]))
+head(airs)
+min(airs$value)
+library(ggplot2)
+str(airs)
+
+ggplot(airs,aes(x=year,y=as.numeric(value),fill=variable))+
+  theme_bw()+
+  geom_bar(stat='identity')+
+  scale_y_continuous(breaks=0,name='count')
 
 
