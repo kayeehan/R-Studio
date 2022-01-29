@@ -392,36 +392,50 @@ x<-data.frame(x)
 x<-x[-11,]
 x<-round(x)
 
-bar_x<-barplot(height=x$mean.SALARY.,
-        names.arg =x$DEPARTMENT_ID,
+install.packages("dplyr")
+library(dplyr)
+emp<-employees%>%
+  dplyr::filter(!EMPLOYEE_ID %in% MANAGER_ID)%>%
+  dplyr::group_by(DEPARTMENT_ID)%>%
+  dplyr::summarise(mean(SALARY))
+emp<-data.frame(emp)[!is.na(emp$DEPARTMENT_ID),]
+names(emp)<-c('DEPT_ID','MEAN_S')
+#최대값 최소값에 대해서는 다른색 지정하고 싶을때
+colors<-NULL
+for (i in 1:nrow(emp)){
+  if(emp$MEAN_S[i]==max(emp$MEAN_S)){
+    colors<-c(colors,'red1')
+  }else if(emp$MEAN_S[i]==min(emp$MEAN_S)){
+    colors<-c(colors,'yellow')
+  }else{
+    colors<-c(colors,'orange2')
+  }
+}
+
+barplot(height=emp$MEAN_S,
+        names.arg = emp$DEPT_ID,
         main='부서별 비관리자 평균급여',
-        xlab='부서번호',ylab='평균급여(만원)',
-        ylim=c(0,10500),
-        col=heat.colors(14))
-text(x=bar_x,y=x$mean.SALARY.,
-    labels =x$mean.SALARY. ,
-     cex=0.7,
-     pos=3)
-#2
-x<-employees%>%
-  filter(!EMPLOYEE_ID %in% MANAGER_ID)%>%
-  group_by(DEPARTMENT_ID)%>%
-  summarise(mean(SALARY))
-x<-data.frame(x)
-x<-x[-11,]
-x<-round(x)
-class(x)
-names(x)<-c('부서','평균급여')
+        xlab='부서번호',ylab='급여',
+        col=colors)
 
-ggplot(data=x,aes(x=as.factor(부서),y=평균급여,fill=as.factor(평균급여))) +
-  geom_bar(stat='identity')+ 
-  labs(title='비관리자의 평균 급여',xlab='부서',ylab='천원')+
-  geom_text(aes(label=평균급여),position=position_dodge(0.7),colour='darkred')+
-  theme_bw()+
-  theme(legend.position = 'none')+
-  # scale_fill_brewer(palette='Set3')
-  scale_fill_manual(values=brewer.pal(10, 'Set3'))
+library(ggplot2)
+emp$DEPT_ID<-as.character(emp$DEPT_ID)
+ggplot(emp,aes(x=DEPT_ID,y=MEAN_S,fill=as.factor(MEAN_S)))+ #fill을 factor로 변경해줘야함.
+  geom_bar(stat='identity')+
+  labs(title='부서별 비관리자 평균급여',xlab='부서번호',ylab='급여')+
+  theme(plot.title=element_text(face='bold'))+
+  scale_fill_manual(values=colors) #dept_id의 순서랑 row순서가 맞지 않아서 다름
 
+emp$SAL<-c(ifelse(emp$MEAN_S==max(emp$MEAN_S),'max',ifelse(emp$MEAN_S==min(emp$MEAN_S),'min','mid')))
+colors1<-c('max'='red',
+           'min'='yellow',
+           'mid'='orange2')
+ggplot(emp,aes(x=DEPT_ID,y=MEAN_S,fill=SAL))+
+  geom_bar(stat='identity')+
+  labs(title='부서별 비관리자 평균급여',xlab='부서번호',ylab='급여')+
+  theme(plot.title=element_text(face='bold'))+
+  scale_x_discrete(limits=emp$DEPT_ID)+
+  scale_fill_manual(values=colors1)
 
 #[문제] 부서별 최고 급여자들의 급여와 최저 급여자들의 급여를 세로형 그래프로 비교하세요.
 x<-employees%>%
