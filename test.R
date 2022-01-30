@@ -89,4 +89,35 @@ ggplot(data=x,aes(x=부서,y=평균급여,fill=as.factor(평균급여)))+
   theme(legend.title.align = 0.5, 
         legend.box.background = element_rect())
 
+#예제 between 17-20 it's green, 14-16 it's yellow etc.
+factor <- c ("Factor1", "actor2", "Factor3", "Factor4", "Factor5")
+mean <- c (9, 18, 14, 19, 17)
+df <- data.frame (factor, mean)
+class(df)
+str(df)
+#Add cutpoints
+df <- df %>%
+  mutate (factor = as.factor(factor),
+          concern = cut (mean, 
+                         breaks = c(-Inf, 9, 13, 17, Inf),
+                         labels = c("Serious", "Significant", "Minimal", "Strengths"),
+                         right = TRUE)
+  )
+#Colour Palette
+pal <- c(
+  "Serious" = "red",
+  "Significant" = "orange", 
+  "Minimal" = "yellow", 
+  "Strengths" = "forestgreen" 
+)
+class(pal)
 
+df %>%
+  ggplot(aes(x = factor, y = mean, fill = concern)) + 
+  geom_col() + 
+  coord_flip() +
+  scale_x_discrete(limits = rev(levels(df$factor))) +
+  scale_fill_manual(
+    values = pal,
+    limits = names(pal)
+  )

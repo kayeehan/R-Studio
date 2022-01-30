@@ -629,5 +629,56 @@ ggplot(airs,aes(x=year,y=as.numeric(value),fill=variable))+
   theme_bw()+
   geom_bar(stat='identity')+
   scale_y_continuous(breaks=0,name='count')
+#22.01.30
+#[문제] 부서별 인원수를 막대그래프로 시각화하고, 최대인원과 최소인원을 출력해주세요.
+x<-employees%>%
+  group_by(DEPARTMENT_ID)%>%
+  dplyr::count(DEPARTMENT_ID)
+x<-data.frame(x) 
+x<-x[!is.na(x$DEPARTMENT_ID),]
+library(ggplot2)
+x$DEPARTMENT_ID<-as.character(x$DEPARTMENT_ID)
+ggplot(x,aes(x=DEPARTMENT_ID,y=n,fill=n))+
+  geom_bar(stat='identity')+
+  scale_x_discrete(limits=x$DEPARTMENT_ID)+
+  geom_text(data=subset(x,n==max(n)|n==min(n)),aes(label=n))
 
+
+#[문제] exam.csv file 을 읽어들여,학생들의 이름을 기준으로 과목점수를 그룹형 막대그래프로 생성하세요.  
+#(범례와 barlabel도 기입해주세요.)
+exam<-read.csv('C:/data_bigdata/exam.csv',header=T)
+exam
+ggplot(exam,aes(x=name,y=grade,fill=subject))+
+  geom_bar(stat='identity')+
+  geom_text(aes(label=grade),position=position_stack(vjust=0.5))+
+  scale_fill_discrete(name='과목',labels=c('Python','R','SQL'))+
+  theme(legend.title.align=0.5,
+        legend.box.background = element_rect())
+
+#[문제] cost.txt 데이터를 읽어들여, 보기처럼 분석해주세요.
+[보기]
+도수  상대도수  누적도수
+50점이상~60점미만     2     0.04        2
+60점이상~70점미만    13     0.26       15
+70점이상~80점미만    16     0.32       31
+80점이상~90점미만     7     0.14       38
+90점이상~100점미만    7     0.14       45
+100점이상             5     0.10       50
+
+cost<-read.table('C:/data_bigdata/cost.txt')
+class(cost)
+cost<-as.matrix(cost)
+dim(cost)<-c(50,1)
+cut(cost,breaks = c(50, 60, 70, 80, 90, 100,Inf),
+    labels = c("50점이상~60점미만", "60점이상~70점미만", "70점이상~80점미만", "80점이상~90점미만","90점이상~100점미만","100점이상"),
+    right = TRUE)
+x<-cut(cost,breaks=seq(50,110,10),right=F,labels=c('50이상~60미만','60이상~70미만',
+                                                   '70이상~80미만','80이상~90미만',
+                                                   '90이상~100미만','100이상~110미만'))
+x<-table(x)
+y<-cbind(x,prop.table(x))
+colnames(y)<-c('도수','상대도수')
+y<-data.frame(y)
+y$누적도수<-cumsum(y$도수)
+y
 
