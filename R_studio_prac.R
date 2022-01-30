@@ -682,3 +682,65 @@ y<-data.frame(y)
 y$누적도수<-cumsum(y$도수)
 y
 
+#[문제] 코로나 바이러스 데이터에서 가장 최근 날짜의 국가명 Australia의 Province.state별로 
+#확진자, 사망자, 회복자 수를 ggplot을 이용해 그룹형 막대그래프로 표시해주세요.(꾸미는건 자유)
+covid<-read.csv('C:/data_bigdata/covid_19_clean_complete.csv',header=T)
+head(covid)
+str(covid)
+covid$Date<-as.Date(covid$Date)
+aus_cov<-covid[covid$Country.Region=='Australia',]
+head(aus_cov)
+aus<-aus_cov[aus_cov$Date==max(aus_cov$Date),c('Province.State','Confirmed','Deaths','Recovered')]
+aus
+library(reshape2)
+a<-melt(aus,measure.vars=c('Confirmed','Deaths','Recovered'))
+library(ggplot2)
+ggplot(a,aes(x=Province.State,y=value,fill=variable))+
+  geom_bar(stat='identity',position=position_dodge())+
+  theme(axis.text.x = element_text(angle=90,face = 'bold'))+
+  labs(title='Australia 주별 covid 현황수',x='주',y='수(명)')+
+  theme(plot.title=element_text(face='bold',hjust=0.5))+
+  theme(axis.title.x=element_text(face='italic',color='darkblue'))+
+  theme(axis.title.y=element_text(face='italic',color='darkblue'))+
+  theme(legend.title.align=0.5,
+        legend.box.background = element_rect())+
+  scale_fill_discrete(labels=c('확진자수','사망자수','회복자수'))
+
+
+#[문제] blood.csv 파일을 읽어 들여서 도수분포표를 작성 하시고 pie chart도 생성해 주세요.
+BLOODTYPE   CN   PCT 누적도수
+A      7   0.35        7
+AB     4   0.20        11  
+B      3   0.15        14
+O      6   0.30        15
+
+aggregate(NAME~BLOODTYPE,blood,length)
+library(plyr)
+freq_b<-plyr::count(blood,'blood$BLOODTYPE')
+names(freq_b)<-c('BLOODTYPE','CN')
+freq_b$PCT<-prop.table(freq_b$CN)
+freq_b$누적도수<-cumsum(freq_b$CN)
+freq_b
+#1
+pie(freq_b$PCT,labels=paste0(freq_b$PCT*100,'%'),main='혈액형별 비율분포',col=brewer.pal(4,'Set3'))
+legend("bottomleft", freq_b$BLOODTYPE,fill=brewer.pal(4,'Set3'))
+col=brewer.pal(4,'Set3')
+#2
+ggplot(freq_b, aes(x="", y=PCT, fill=BLOODTYPE))+ 
+  geom_bar(width = 1, stat = "identity") + 
+  coord_polar("y", start=0) + 
+  theme_void() +
+  labs(x = NULL, y = NULL, fill = NULL) + 
+  scale_fill_brewer(palette="BuPu", direction=-1) +
+  geom_text(aes(label = paste0(PCT*100,'%' )), size=3, position=position_stack(vjust=0.5)) 
+
+#[문제] 같은 날짜에 입사한 사원들의 급여를 날짜를 기준으로 ggplot을 이용해 라인 그래프로시각화 해주세요.
+emp<-employees%>%
+  dplyr::select(HIRE_DATE,SALARY)%>%
+  dplyr::arrange(HIRE_DATE)
+emp$HIRE_DATE<-as.Date(emp$HIRE_DATE)
+str(emp)
+ggplot(emp,aes(x=HIRE_DATE,y=SALARY,fill=SALARY))+
+  geom_line()+
+  scale_x_date(date_labels = '%Y-%m',date_breaks = '3 months')+ #date_breaks='1 days'
+  theme(axis.text.x=element_text(angle=90))
