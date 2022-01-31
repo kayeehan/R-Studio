@@ -771,3 +771,74 @@ ggplot(sales,aes(x=year,y=qty,fill=name))+
   geom_bar(stat='identity',position=position_dodge())+
   geom_text(aes(label=qty),position = position_dodge(0.9))+
   scale_fill_manual(name='fruits',values=c('red1','yellow2','purple','orange2'))
+
+#[문제] 부서별 인원수를  ggplot을 이용해서 시각화 해주세요.
+emp<-employees%>%
+  group_by(DEPARTMENT_ID)%>%
+  count()
+str(emp)
+emp<-data.frame(emp)
+emp$DEPARTMENT_ID<-as.character(emp$DEPARTMENT_ID)
+emp<-emp[!is.na(emp$DEPARTMENT_ID),]
+ggplot(emp,aes(x=DEPARTMENT_ID,y=n,fill=SAL))+
+  geom_bar(stat='identity')+
+  labs(title='부서별 인원수',x='부서코드',y='')+
+  geom_text(aes(y=n,label=n))+
+  scale_fill_manual(values=colors1,guide='none')
+
+emp$SAL<-c(ifelse(emp$n==max(emp$n),'max',ifelse(emp$n==min(emp$n),'min','mid')))
+colors1<-c('max'='red',
+           'min'='yellow',
+           'mid'='orange2')
+
+#[문제] repeat문을 이용해서 7단을 출력해주세요.
+i<-1
+repeat{
+  cat('7 *',i,' = ',7*i,'\n')
+  if(i==9){
+    break
+  }
+  i<-i+1
+}
+
+
+#[문제] median을 사용하지 않고 중앙값을 리턴하는 함수를 만들어주세요.
+med<-function(...){
+  x<-c(...)
+  if(length(x)%%2==0){
+    mean(x[length(x)/2],x[(length(x)/2)+1])
+  }else{
+    x[(length(x)+1)/2]
+  }
+}
+med(1,2,3,4)
+
+
+#[문제] 군별로 plot차트를 그리시오(감염병컬럼은 제거, x축은 날짜, na값 -> 0)
+data<-read.csv('C:/data_bigdata/감염병_군별_발생현황.csv',header=T)
+data
+head(data)
+str(data)
+data<-data[-1,-2]
+data<-replace(data,is.na(data),0)
+data[,2:ncol(data)]<-lapply(data[,2:ncol(data)],as.integer)
+colnames(data)<-c('군별','2015','2016','2017','2018','2019')
+
+result<-data%>%
+  group_by(군별)%>%
+  dplyr::summarise('2015'=sum(data$`2015`),
+                   '2016'=sum(data$`2016`),
+                   '2017'=sum(data$`2017`),
+                   '2018'=sum(data$`2018`),
+                   '2019'=sum(data$`2019`))
+result<-data.frame(result)
+rownames(result)<-result[,1]
+result<-result[,-1]
+colnames(result)<-c(2015:2019)
+result
+barplot(height=as.matrix(result),
+        names.arg =colnames(result),
+        ylim=c(0,800000),
+        col=rainbow(4))
+legend("topleft",legend = rownames(result),col=rainbow(4),pch=15,cex=0.8)
+options(scipen = 999)
