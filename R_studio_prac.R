@@ -744,3 +744,30 @@ ggplot(emp,aes(x=HIRE_DATE,y=SALARY,fill=SALARY))+
   geom_line()+
   scale_x_date(date_labels = '%Y-%m',date_breaks = '3 months')+ #date_breaks='1 days'
   theme(axis.text.x=element_text(angle=90))
+
+#22.01.31
+#[문제] 사원의 last_name, 근무일수를 출력하세요.
+str(employees)
+employees$HIRE_DATE<-as.Date(employees$HIRE_DATE)
+employees%>%
+  mutate(DAYS=Sys.Date()-HIRE_DATE)%>%
+  select(LAST_NAME,DAYS)
+
+
+#[문제] commission_pct에 NA인 사원들의 LAST_NAME, SALARY, DEPARTMENT_ID,DEPARTMENT_NAME을 출력해주세요.
+emp<-merge(employees,departments,by='DEPARTMENT_ID')
+emp[is.na(emp$COMMISSION_PCT),c('LAST_NAME','SALARY','DEPARTMENT_ID','DEPARTMENT_NAME')]
+
+
+#[문제] JOB_ID별 급여를 많이 받는 사원 1등만 추출해 주세요.
+employees%>%
+  group_by(JOB_ID)%>%
+  filter(SALARY==max(SALARY))
+
+#[문제] fruits_sales.csv를 이용해 년도별 과일 판매량을 스택형 막대그래프로 생성해주세요. 범례와 barlabels도 함께 생성해주세요. 
+sales
+library(ggplot2)
+ggplot(sales,aes(x=year,y=qty,fill=name))+
+  geom_bar(stat='identity',position=position_dodge())+
+  geom_text(aes(label=qty),position = position_dodge(0.9))+
+  scale_fill_manual(name='fruits',values=c('red1','yellow2','purple','orange2'))
