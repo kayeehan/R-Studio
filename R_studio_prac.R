@@ -16,8 +16,8 @@ install.packages("ggfortify") #data.frame을 전환없이 바로 시계열 그�
 library(ggfortify)
 install.packages("zoo")
 library(zoo)
-
-
+library(stringr) #str_detect시 사용
+library(reshape2)
 
 
 
@@ -842,3 +842,29 @@ barplot(height=as.matrix(result),
         col=rainbow(4))
 legend("topleft",legend = rownames(result),col=rainbow(4),pch=15,cex=0.8)
 options(scipen = 999)
+
+#[문제] 전출지_전입지_시도_별_이동자수.csv파일을 읽어와 광역시가 들어간 지역만 추출하여 "광역시"를 
+#"metropolitan"으로 바꿔준 후 막대그래프를 그리시오(단 x축은 광역시, facet_grid()옵션을 이용하여 날짜별로 나누기) 
+move<-read.csv('C:/data_bigdata/시도_별_이동자수.csv',header=T)
+head(move)
+library(stringr)
+moving<-move%>%
+  filter(str_detect(전입지별,'광역시')&전출지별=='서울특별시')%>%
+  select(전입지별,X2015,X2016,X2017,X2018,X2019,X2020,X2021)
+move[str_detect(move$전입지별,'광역시')&move$전출지별=='서울특별시',c('전입지별','X2015','X2016','X2017','X2018','X2019','X2020','X2021')]
+move[grep('광역시$',move$전입지별),]
+
+moving$전입지별<-gsub('광역시','metropolitan',moving$전입지별)
+moving
+colnames(moving)<-c('전입지별',2015:2021)
+str(moving)
+moving[,2:ncol(moving)]<-lapply(moving[,2:ncol(moving)],as.integer)
+mov<-melt(moving)
+library(ggplot2)
+ggplot(data=mov,aes(x=전입지별,y=value,fill=variable))+
+  geom_bar(stat='identity')+
+  facet_grid(rows=mov$variable)+
+  labs(title='연도별 전입자수',x='',y='전입자수')+
+  theme(axis.text.x=element_text(angle=90))+
+  scale_fill_brewer(palette = "Dark2")+
+  theme(legend.position='none')
