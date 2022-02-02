@@ -768,8 +768,8 @@ employees%>%
 sales
 library(ggplot2)
 ggplot(sales,aes(x=year,y=qty,fill=name))+
-  geom_bar(stat='identity',position=position_dodge())+
-  geom_text(aes(label=qty),position = position_dodge(0.9))+
+  geom_bar(stat='identity',position=position_stack())+
+  geom_text(aes(label=qty),position = position_stack(0.5))+
   scale_fill_manual(name='fruits',values=c('red1','yellow2','purple','orange2'))
 
 #[문제] 부서별 인원수를  ggplot을 이용해서 시각화 해주세요.
@@ -820,8 +820,9 @@ data
 head(data)
 str(data)
 data<-data[-1,-2]
-data<-replace(data,is.na(data),0)
+
 data[,2:ncol(data)]<-lapply(data[,2:ncol(data)],as.integer)
+data<-replace(data,is.na(data),0)
 colnames(data)<-c('군별','2015','2016','2017','2018','2019')
 
 result<-data%>%
@@ -868,3 +869,21 @@ ggplot(data=mov,aes(x=전입지별,y=value,fill=variable))+
   theme(axis.text.x=element_text(angle=90))+
   scale_fill_brewer(palette = "Dark2")+
   theme(legend.position='none')
+
+#[문제] employees테이블에서 부서인원수를 ggplot을 이용해서 막대그래프로 시각화해주세요
+emp<-aggregate(EMPLOYEE_ID~DEPARTMENT_ID,employees,length)
+library(ggplot2)
+emp$DEPARTMENT_ID<-as.character(emp$DEPARTMENT_ID)
+ggplot(emp,aes(x=DEPARTMENT_ID,y=EMPLOYEE_ID,fill=EMPLOYEE_ID))+
+  geom_bar(stat='identity')+
+  theme(legend.position = 'none')+
+  labs(title='부서별 인원수',x='부서번호',y='인원수')
+
+#[문제] exam.csv file에는 학생들의 시험점수가 있습니다. 학생들의 R 점수를 막대그래프로 출력해주세요
+exam
+ggplot(exam,aes(x=name,y=grade,fill=name))+
+  geom_bar(data=subset(exam,subject=='R'),stat='identity')+
+  theme(legend.position = 'none')+
+  labs(title='R점수',x='',y='')+
+  theme(plot.title=element_text(face='bold',hjust=0.5,size=20))+
+  scale_fill_brewer(palette = 'Spectral')
