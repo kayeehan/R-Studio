@@ -22,7 +22,6 @@ library(reshape2)
 
 
 
-#22.01.20
 #[문제] COMMISSION_PCT가 NA인 사원들 급여 평균과 
 #COMMISSION_PCT가 NA가 아닌 사원들의 급여 평균 차를 구하세요
 
@@ -50,7 +49,7 @@ sqldf('select *
                           from employees
                           where commission_pct is null)')
 
-#22.01.21
+
 #[문제]자신의 부서 평균 급여 보다 더 많이 받는 사원들의 EMPLOYEE_ID, DEPARTMENT_ID, SALARY를 출력해주세요.
 x<-aggregate(SALARY~DEPARTMENT_ID,employees,mean)
 y<-merge(employees,x,by='DEPARTMENT_ID')
@@ -77,7 +76,7 @@ for (i in 1:nrow(employees)){
 y
 employees[employees$EMPLOYEE_ID %in% y,]
 
-#22.01.22
+
 #[문제]sales의 fruits 컬럼을 생성하고 qty개수만큼의 과일이름을 출력해주세요.
 sales$name[16]
 fruits<-NULL
@@ -118,7 +117,7 @@ employees%>%
   dplyr::filter(rank<=10)%>%
   dplyr::arrange(rank)
   
-#22.01.23 
+
 #[문제] 1~100의 정수를 차례로 출력하되 3의 배수에서는 숫자 대신 *을 출력하는 FOR문 코드를 작성하시오
 #1
 num<-NULL
@@ -353,7 +352,7 @@ employees%>%
   dplyr::mutate(grade=ifelse(SALARY>=10000,'H',ifelse(SALARY>=5000,'M','L')))%>%
   dplyr::select(LAST_NAME,SALARY,grade)
 
-#22.01.24
+
 #[문제] employees 파일에서 입사년도별, job_id별 입사자수를 구하고, 세로형 그래프로 표현해주세요.
 y<-xtabs(~JOB_ID+lubridate::year(HIRE_DATE),employees)
 addmargins(y,1)
@@ -454,7 +453,7 @@ result<-barplot(height = z,
         legend.text=rownames(z),
         col=c('khaki4','ivory'))
 
-#22.01.25
+
 #[문제]kosis에서 하루 1회이상 외식률 2010년~2019년 자료를 추출하여, 연령별2별로 그래프를 출력하세요.
 eat<-read.csv('C:/data_bigdata/하루_1회_이상_외식률_추이.csv',header=T)
 head(eat)
@@ -510,7 +509,7 @@ for(i in 1:ncol(emp)){
       col=brewer.pal(8,'Set3'))
 }
            
-#22.01.26
+
 #[문제]sale파일에서 연도별 판매량을 plot을 사용해서 비교하세요.
 apple<-sales[sales$name=='apple',c('year','qty')]
 banana<-sales[sales$name=='banana',c('year','qty')]
@@ -527,31 +526,6 @@ axis(1,at=2014:2017)
 axis(2)
 
 #[문제]3,6,9가 들어간 숫자에는 숫자 대신 '짝'을 출력하는 v369 함수를 만드세요.
-
-grep(6,c('3','6','9'),value=T)
-
-v369 <-function(x){
-  ifelse(grep(as.character(x),c('3','6','9'),value=T) %in% c('3','6','9'),print('짝'),print(x))
-}
-v369(3)
-v369(13)
-
-v369 <-function(x){
-  ifelse(grep(x,c('3','6','9'),value=T) %in% c('3','6','9'),print('짝'),print(x))
-}
-#22.01.27
-
-v369 <-function(x){
-  pattern<-NULL
-  pattern<-paste0('^\\w*',x,'\\&$')
-  ifelse(grep(pattern,c('3','6','9'),value=T) %in% c('3','6','9'),print('짝'),print(x))
-}
-v369(3)
-v369(13)
-x<-13
-strsplit(as.character(x), "")
-pattern<-paste0('^\\w*',3,'\\&$')
-grep('^\\w*3\\w*$',c('3','6','9'),value=T) #grep함수:특정 문자가 포함된 리스트 출력
 
 #369에 짝 출력
 v369<-function(x){
@@ -592,6 +566,45 @@ v369<-function(x){
 v369(333)
 v369(6)
 
+#grep 이용
+
+v369<-function(x){
+  y<-NULL
+  k<-NULL
+  y<-strsplit(as.character(x), "")
+  z<-NULL
+  for(i in 1:length(unlist(y))){
+    z<-c(z,grep(unlist(y)[[i]],c('3','6','9'),value=F))
+  }    
+  if(sum(as.integer(z))>=1){
+    for(j in 1:sum(as.integer(z))){
+      k<-paste0(k,'짝')
+    }
+  }else{
+    return(x)
+  }
+  return(k)
+}
+v369(133)
+
+#str_count 이용
+
+v369<-function(x){
+  z<-NULL
+  k<-NULL
+  z<-str_count(x,'(3|6|9)')
+  for (i in 1:z){
+    if(z>=1){
+      k<-paste0(k,'짝')
+    }else{
+      return(x)
+    }
+  }
+  return(k)
+}
+v369(133)
+v369(1739)
+
 #[문제]숫자를 넣으면 해당 숫자의 구구단이 출력되는 gugudan 함수를 만드세요.
 
 gugudan<-function(x){
@@ -604,7 +617,7 @@ gugudan<-function(x){
 }
 gugudan(2)
 
-#22.01.28
+
 #AirPassengers로 년도별 탑승객 수 시각화하기
 AirPassengers
 library(reshape2)
@@ -629,7 +642,7 @@ ggplot(airs,aes(x=year,y=as.numeric(value),fill=variable))+
   theme_bw()+
   geom_bar(stat='identity')+
   scale_y_continuous(breaks=0,name='count')
-#22.01.30
+
 #[문제] 부서별 인원수를 막대그래프로 시각화하고, 최대인원과 최소인원을 출력해주세요.
 x<-employees%>%
   group_by(DEPARTMENT_ID)%>%
@@ -745,7 +758,7 @@ ggplot(emp,aes(x=HIRE_DATE,y=SALARY,fill=SALARY))+
   scale_x_date(date_labels = '%Y-%m',date_breaks = '3 months')+ #date_breaks='1 days'
   theme(axis.text.x=element_text(angle=90))
 
-#22.01.31
+
 #[문제] 사원의 last_name, 근무일수를 출력하세요.
 str(employees)
 employees$HIRE_DATE<-as.Date(employees$HIRE_DATE)
@@ -887,3 +900,4 @@ ggplot(exam,aes(x=name,y=grade,fill=name))+
   labs(title='R점수',x='',y='')+
   theme(plot.title=element_text(face='bold',hjust=0.5,size=20))+
   scale_fill_brewer(palette = 'Spectral')
+
