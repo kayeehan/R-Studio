@@ -3,6 +3,7 @@ departments<-read.csv('C:/data_bigdata/dept.csv',header=T)
 sales<-read.csv('C:/data_bigdata/fruits_sales.csv',header=T)
 blood<-read.csv('C:/data_bigdata/blood.csv',header=T)
 survey<-read.csv('C:/data_bigdata/survey.csv',header=F)
+seoul<-readLines('C:/data_bigdata/seoul.txt')
 install.packages('plyr')
 library(plyr)
 install.packages("dplyr")
@@ -905,6 +906,7 @@ ggplot(exam,aes(x=name,y=grade,fill=name))+
 number <- '전화1 02)123-4567 내선번호 123 전화2 031)456-7778 내선번호 456 전화3 024-457-1111 내선번호 777
 전화4 02-4574578 내선번호 025 전화5 070-0700-0700 내선번호 031'
 str_extract_all(number,'[0]+[2]+[)-]+\\d+\\W*\\d*')
+str_extract_all(number,'(02)+[)-]+\\d+\\-*\\d+')
 
 #[문제] 다음 도시에서 한글로 적힌 도시만 출력해서, 빈도수 2 이상인 도시만 시각화해주세요.
 city <- '서울 seoul newyork 뉴욕 뉴저지 서울 강릉 양양 yangyang 뉴욕 서울 강릉 NY 서울 뉴욕 남양주 양주
@@ -919,3 +921,22 @@ wordcloud(df$city_f,df$Freq,
           min.freq = 2,
           colors=brewer.pal(5,'Set1'),
           random.order = F)
+library(wordcloud2)
+wordcloud2(df[df$Freq>=2,])
+
+#[문제]'시장님'이 들어간 요청사항의 개수를 확인하고 관련 요청 내용을 wordcloud로 시각화해주세요.
+seoul
+mayor<-grep('\\시장님+',seoul,value=T)
+#앞에 숫자 제거
+str_extract_all(mayor,'^\\d+')
+mayor<-gsub('^\\d+','',mayor)
+#뒤에 숫자 및 날짜 제거
+str_extract_all(mayor,'\\d{4}-\\d{2}-\\d{2}\\s\\d+')
+mayor<-str_replace_all(mayor,'\\d{4}-\\d{2}-\\d{2}\\s\\d+','')
+mayor<-str_squish(mayor)
+class(mayor)
+df<-data.frame(table(mayor))
+
+wordcloud2(df,
+           size=0.1)
+
