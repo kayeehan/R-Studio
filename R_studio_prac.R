@@ -901,3 +901,21 @@ ggplot(exam,aes(x=name,y=grade,fill=name))+
   theme(plot.title=element_text(face='bold',hjust=0.5,size=20))+
   scale_fill_brewer(palette = 'Spectral')
 
+#[문제] 다음의 전화번호 리스트에서 02로 시작하는 서울 번호만 출력해주세요.
+number <- '전화1 02)123-4567 내선번호 123 전화2 031)456-7778 내선번호 456 전화3 024-457-1111 내선번호 777
+전화4 02-4574578 내선번호 025 전화5 070-0700-0700 내선번호 031'
+str_extract_all(number,'[0]+[2]+[)-]+\\d+\\W*\\d*')
+
+#[문제] 다음 도시에서 한글로 적힌 도시만 출력해서, 빈도수 2 이상인 도시만 시각화해주세요.
+city <- '서울 seoul newyork 뉴욕 뉴저지 서울 강릉 양양 yangyang 뉴욕 서울 강릉 NY 서울 뉴욕 남양주 양주
+안양 안산 suwon 서울 ansan 안양 뉴욕'
+city_f<-str_extract_all(city,'[가-힣]+')
+df<-data.frame(table(city_f))
+df
+install.packages("wordcloud")
+library(wordcloud)
+wordcloud(df$city_f,df$Freq,
+          scale=c(9,0.5),
+          min.freq = 2,
+          colors=brewer.pal(5,'Set1'),
+          random.order = F)
