@@ -17,10 +17,19 @@ install.packages("ggfortify") #data.frame을 전환없이 바로 시계열 그�
 library(ggfortify)
 install.packages("zoo")
 library(zoo)
-library(stringr) #str_detect시 사용
+library(stringr) #str_detect 외 str 함수 사용을 위해 사용
 library(reshape2)
-
-
+#형태소 분석을 위한 library
+install.packages('rJava')
+library(rJava)
+install.packages(c('stringr', 'hash', 'tau', 'Sejong', 'RSQLite', 'devtools'), type = "binary")
+install.packages('remotes')
+remotes::install_github(force = T,'haven-jeon/KoNLP', upgrade = "never",
+                        INSTALL_opts=c("--no-multiarch"))
+library(KoNLP)
+useNIADic()
+install.packages("rvest") #스크래핑을 위한 library
+library(rvest)
 
 
 #[문제] COMMISSION_PCT가 NA인 사원들 급여 평균과 
@@ -606,6 +615,8 @@ v369<-function(x){
 v369(133)
 v369(1739)
 
+
+
 #[문제]숫자를 넣으면 해당 숫자의 구구단이 출력되는 gugudan 함수를 만드세요.
 
 gugudan<-function(x){
@@ -940,3 +951,71 @@ df<-data.frame(table(mayor))
 wordcloud2(df,
            size=0.1)
 
+#네이버 영화의 네티즌 평점에서 현재 상영작의 모든 영화에 대한 평점 및 comment를 1~100페이지까지 스크래핑해주세요.
+movie<-data.frame()
+#페이지의 각 테이블 별 자료 출력
+html<-str_trim(read_html('https://movie.naver.com/movie/point/af/list.naver?&page=1')%>%
+  html_nodes('.title')%>%
+  html_text())
+
+html
+#영화이름 출력
+name<-str_extract_all(html,'^.+')
+#영화 평점 출력
+point<-str_match(html,'별점 - 총 10점 중(\\d{1,2})')[,2]
+#영화 코멘트 출력
+html<-str_remove(html,'^.+')
+html<-str_remove(html,'별점 - 총 10점 중(\\d{1,2})')
+html<-str_remove(html,'\\\t신고')
+comment<-str_trim(html)
+
+movie<-data.frame()
+for (i in 1:100){
+  html<-str_trim(read_html(paste0('https://movie.naver.com/movie/point/af/list.naver?&page=',i))%>%
+                   html_nodes('.title')%>%
+                   html_text())
+  #영화이름 출력
+  name<-unlist(str_extract_all(html,'^.+'))
+  #영화 평점 출력
+  point<-str_match(html,'별점 - 총 10점 중(\\d{1,2})')[,2]
+  #영화 코멘트 출력
+  html<-str_remove(html,'^.+')
+  html<-str_remove(html,'별점 - 총 10점 중(\\d{1,2})')
+  html<-str_remove(html,'\\\t신고')
+  comment<-str_trim(html)
+  movie<-rbind(movie,data.frame(name=name,point=point,comment=comment))
+  Sys.sleep(1)
+}
+View(movie)
+#위의 스크래핑한 자료에서 영화별 평균 평점을 구하고 영화별 comment를 한 컬럼에 붙여 넣어주세요.
+library(dplyr)
+str(movie)
+
+#평균 평점 구하기
+movie$point<-as.integer(movie$point)
+mean_movie<-data.frame(movie%>%
+    group_by(name)%>%
+      dplyr::summarise(mean = mean(point)))
+
+head(movie)
+mean_movie
+#comment 합치기
+x<-movie%>%
+  group_by(name)%>%
+  mutate(total=paste(comment,collapse='\t'))
+result<-merge(mean_movie,x,by='name')
+
+View(result)
+result<-result[,c(1,2,5)]
+#리뷰수 추가하기
+result<-data.frame(result%>%
+  group_by(name)%>%
+  add_count())
+result<-unique(result)
+View(result)
+#리뷰수가 5개 이상인 리뷰 중에 평점이 가장 높은 다섯가지 영화 출력
+top5<-result%>%
+  filter(n>=5)%>%
+  mutate(rank=dense_rank(desc(mean)))%>%
+  filter(rank<=5)
+View(top5)
