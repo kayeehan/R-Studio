@@ -30,6 +30,11 @@ library(KoNLP)
 useNIADic()
 install.packages("rvest") #스크래핑을 위한 library
 library(rvest)
+install.packages('jsonlite')
+library(jsonlite)
+library(RSelenium)
+remdr<-remoteDriver(remoteServerAddr='localhost',port=7777,browserName='chrome')
+
 
 
 #[문제] COMMISSION_PCT가 NA인 사원들 급여 평균과 
@@ -951,7 +956,7 @@ df<-data.frame(table(mayor))
 wordcloud2(df,
            size=0.1)
 
-#네이버 영화의 네티즌 평점에서 현재 상영작의 모든 영화에 대한 평점 및 comment를 1~100페이지까지 스크래핑해주세요.
+#[문제]네이버 영화의 네티즌 평점에서 현재 상영작의 모든 영화에 대한 평점 및 comment를 1~100페이지까지 스크래핑해주세요.
 movie<-data.frame()
 #페이지의 각 테이블 별 자료 출력
 html<-str_trim(read_html('https://movie.naver.com/movie/point/af/list.naver?&page=1')%>%
@@ -987,7 +992,7 @@ for (i in 1:100){
   Sys.sleep(1)
 }
 View(movie)
-#위의 스크래핑한 자료에서 영화별 평균 평점을 구하고 영화별 comment를 한 컬럼에 붙여 넣어주세요.
+#[문제]위의 스크래핑한 자료에서 영화별 평균 평점을 구하고 영화별 comment를 한 컬럼에 붙여 넣어주세요.
 library(dplyr)
 str(movie)
 
@@ -1019,3 +1024,47 @@ top5<-result%>%
   mutate(rank=dense_rank(desc(mean)))%>%
   filter(rank<=5)
 View(top5)
+
+#다나와 홈페이지에서 애플 노트북만 선택하여 모든 페이지의 노트북명, 사양정보, 가격정보 데이터 프레임으로 저장하세요.
+remdr$open()
+remdr$navigate('http://prod.danawa.com/list/?cate=112758')
+remdr$findElement(using='class',value='spec_opt_view')$clickElement()
+remdr$findElement(using='xpath',value='//*[@id="searchMaker1452"]')$clickElement()
+
+apple<-data.frame()
+memnpri<-NULL
+a_spec<-NULL
+a_name<-NULL
+id<-NULL
+for (i in 1:6){
+  #페이지이동 - 3,4페이지가 다르므로 xpath 사용 불가
+  #remdr$findElement(using='xpath',value='//*[@id="productListArea"]/div[5]/div/div/a[1]')$clickElement()
+  #페이지이동
+  remdr$findElement(using='css',value=paste0('div.number_wrap > a:nth-child(',i,')'))$clickElement()
+  Sys.sleep(2)
+  html <- read_html(remdr$getPageSource()[[1]])
+  id_tmp<-as.character(na.omit(html_nodes(html,'div.main_prodlist.main_prodlist_list>ul.product_list>li')%>%html_attr('id')))
+  id<-c(id,id_tmp)
+  for (j in 1:length(id)){
+    id_info <- html_nodes(html,paste0('li#',id[j]))
+    name<-html_nodes(id_info,'p.prod_name')%>%html_text()%>%str_trim%>%str_remove_all('인기\\s+순위\\d{1,2}')%>%str_trim
+    spec <- html_nodes(id_info,'div.spec_list')%>%html_text()%>%str_trim
+    p_id<-html_nodes(id_info,'div.prod_pricelist>ul>li')%>%html_attr('id')
+    a_name <- c(a_name,name)
+    a_spec<- c(a_spec,spec)
+    m_p<-NULL
+    
+    for (k in 1:length(p_id)){
+      memory <- html_nodes(html,xpath=paste0('//*[@id="',p_id[k],'"]//div/p'))%>%html_text()%>%str_trim
+      price <- html_nodes(html,xpath=paste0('//*[@id="',p_id[k],'"]/p[2]/a'))%>%html_text()%>%str_trim
+      m_p<-str_trim(paste(m_p,paste(memory,price,sep='/'),sep='       '))
+      if (k==length(p_id)){
+        memnpri <-c(memnpri,m_p)
+      }
+    }
+  }
+  apple <- rbind(apple,cbind(a_name,a_spec,memnpri))
+}
+names(apple)<-c('노트북명','스펙','가격')
+View(apple)
+
