@@ -1031,6 +1031,7 @@ remdr$navigate('http://prod.danawa.com/list/?cate=112758')
 remdr$findElement(using='class',value='spec_opt_view')$clickElement()
 remdr$findElement(using='xpath',value='//*[@id="searchMaker1452"]')$clickElement()
 
+library(stringr)
 apple<-data.frame()
 memnpri<-NULL
 a_spec<-NULL
@@ -1053,18 +1054,61 @@ for (i in 1:6){
     a_name <- c(a_name,name)
     a_spec<- c(a_spec,spec)
     m_p<-NULL
-    
     for (k in 1:length(p_id)){
       memory <- html_nodes(html,xpath=paste0('//*[@id="',p_id[k],'"]//div/p'))%>%html_text()%>%str_trim
       price <- html_nodes(html,xpath=paste0('//*[@id="',p_id[k],'"]/p[2]/a'))%>%html_text()%>%str_trim
-      m_p<-str_trim(paste(m_p,paste(memory,price,sep='/'),sep='       '))
+      m_p<- paste(m_p,paste(memory,price,sep=' : '),sep = ' / ')%>%str_remove('^\\s+/\\s+')
       if (k==length(p_id)){
         memnpri <-c(memnpri,m_p)
       }
     }
   }
-  apple <- rbind(apple,cbind(a_name,a_spec,memnpri))
+  apple <- rbind(apple,data.frame('노트북명'=a_name,'스펙'=a_spec,'가격'=memnpri))
 }
-names(apple)<-c('노트북명','스펙','가격')
+
 View(apple)
+
+length(a_name)
+length(a_spec)
+length(memnpri)
+
+
+#네이버 주식의 검색상위 종목 출력
+remdr$open()
+#삼성전자
+remdr$navigate('https://finance.naver.com/item/main.naver?code=005930')
+#인기주식
+remdr$navigate('https://finance.naver.com/sise/lastsearch2.naver')
+html <- read_html(remdr$getPageSource()[[1]])
+xml2::xml_remove(html_nodes(html,'td.blank_08'))
+xml2::xml_remove(html_nodes(html,'td.blank_06'))
+pop<-NULL
+for (i in 1:90){
+  search<-html_nodes(html,'table.type_5')%>%html_nodes(paste0('tbody>tr:nth-child(',i,')'))%>%html_text%>%str_squish()
+  pop <- c(pop,search)
+}
+pop
+pop <- grep('\\w+',pop,value=T)
+pop
+name<-unlist(str_split(pop[1],' '))
+length(name)
+result<-data.frame()
+for (i in 1:length(pop)){
+  tmp<-unlist(str_split(pop[i],' '))
+  result<- rbind(result,tmp)
+}
+result
+colnames(result)<-result[1,]
+result<-result[-1,-1]
+result$전일비 <- ifelse(result$등락률<0,paste('▼',result$전일비),paste('▲',result$전일비))
+View(result)
+ifelse(result$등락률<0,paste('▼',result$전일비),paste('▲',result$전일비))
+
+install.packages("formattable")
+library(formattable)
+
+formattable(result,
+            list(`등락률`=formatter("span", style=x~style(color= ifelse(x>0, "red", 'blue'))),
+                 `전일비`=formatter("span", style=x~style(color= ifelse(result$등락률>0, "red", 'blue')))))
+
 
