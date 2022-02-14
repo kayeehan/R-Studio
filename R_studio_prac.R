@@ -34,8 +34,10 @@ install.packages('jsonlite')
 library(jsonlite)
 library(RSelenium)
 remdr<-remoteDriver(remoteServerAddr='localhost',port=7777,browserName='chrome')
-
-
+install.packages("tm") #corpus 정보를 변경하기 위한 패키지지
+library(tm)
+install.packages("SnowballC") #어근통일화를 위한 패키지
+library(SnowballC)
 
 #[문제] COMMISSION_PCT가 NA인 사원들 급여 평균과 
 #COMMISSION_PCT가 NA가 아닌 사원들의 급여 평균 차를 구하세요
@@ -1111,4 +1113,86 @@ formattable(result,
             list(`등락률`=formatter("span", style=x~style(color= ifelse(x>0, "red", 'blue'))),
                  `전일비`=formatter("span", style=x~style(color= ifelse(result$등락률>0, "red", 'blue')))))
 
+#기본 데이터셋인 mtcars 분석하기
+class(mtcars)
+View(mtcars)
+summary(mtcars)
 
+cyl <- mtcars$cyl
+hp <- mtcars$hp
+hp
+plot(density(hp))
+plot(density(cyl))
+
+plot(cyl,hp,pch=18,col='dark green')
+
+x <- lm(formula = hp~cyl,data=mtcars)
+abline(x) #그래프를 통해 cyl가 5이거나 7일때의 hp값을 예상할 수 있음
+
+lm(formula = hp~cyl,data=mtcars)%>%summary()
+Multiple R-squared:  0.693 #69.3%만큼 독립변수가 종속변수의 변동성을 설명함.
+F-statistic: 67.71 on 1 and 30 DF,  p-value: 3.478e-09
+#f값이 67.71이고, p-value가 0보다 작아 통계적으로 유의함
+
+#조 바이든 취임연설문을 스크래핑해서 정리한 후 시각화하기
+
+remdr<-remoteDriver(remoteServerAddr='localhost',port=7777,browserName='chrome')
+remdr$open() #browser open
+remdr$navigate("https://www.whitehouse.gov/briefing-room/speeches-remarks/2021/01/20/inaugural-address-by-president-joseph-r-biden-jr/")
+html <- read_html(remdr$getPageSource()[[1]])
+remdr$close()
+#홈페이지에서 연설문만 텍스트로 출력하기
+text <- html_nodes(html,'div.row>p')%>%html_text()
+#텍스트 사항 중에 수정할 사항 수정하기(시간 나와있는 리스트 삭제, 붙어있는 거 띄어쓰기)
+text1 <- str_replace_all(text,
+                         'prayersof centuries have brought us to this dayWhat shall be our legacy?What will our children say?…Let me know in my heartWhen my days are throughAmericaAmericaI gave my best to you.',
+                         'The work and prayers of centuries have brought us to this day What shall be our legacy? What will our children say? …Let me know in my heart When my days are through America America I gave my best to you.')
+
+text1 <- str_replace_all(text,'prayersof','prayers of')
+text1 <- str_replace_all(text1,'dayWhat','day What')
+text1 <- str_replace_all(text1,'legacy\\?What','legacy What')
+text1 <- str_replace_all(text1,'say\\?…Let','say\\?… Let')
+text1 <- str_replace_all(text1,'heartWhen','heart When')
+text1 <- str_replace_all(text1,'throughAmericaAmericaI','through America America I')
+
+grep('\\w*\\d+\\w*',text1,value=T)
+text1 <- text1[c(-2,-212)]
+grep('through',text1,value=T)
+#vector를 corpus로 변환하기
+b_text <- tm::VCorpus(VectorSource(text1))
+b_text
+#특수문자 제거
+b_text <- tm_map(b_text,removePunctuation)
+class(b_text)
+
+#숫자 제거
+lapply(tm_map(b_text,removeNumbers),content)
+b_text <- tm_map(b_text,removeNumbers)
+grep('World' ,sapply(b_text,content),value=T)
+#world war 911 입력해야함.
+b_text <- tm_map(b_text,content_transformer(function(x) gsub('World War  ','world War 911 ',x)))
+lapply(b_text,content)
+#소문자로 변경
+b_text <- tm_map(b_text,content_transformer(tolower))
+#불용어 삭제
+tm_map(b_text,removeWords,stopwords())
+stopword2 <- c(tm::stopwords(),"i will","us","let","'s","’re","you","’s","won’t",
+               "can’t","don’t","…","”","”")
+b_text <- tm_map(b_text,removeWords,stopword2)
+#미리보기
+lapply(tm_map(b_text,removeWords,stopword2),content)
+#공백제거
+b_text <- tm_map(b_text,stripWhitespace)
+lapply(b_text,content)
+#어근 통일화는 미진행
+
+text_dtm <- DocumentTermMatrix(b_text)
+termfreq <- colSums(as.matrix(text_dtm))
+wordcloud(words=names(termfreq),freq=termfreq)
+termdf <- data.frame(word=names(termfreq),freq=termfreq)
+wordcloud2(termdf)
+
+ggplot(subset(termdf,freq>=5),aes(x=reorder(word,freq),y=freq,fill=word))+
+  geom_col(show.legend = FALSE)+
+  labs(x='',y='')+
+  coord_flip()
