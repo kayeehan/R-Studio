@@ -1196,3 +1196,106 @@ ggplot(subset(termdf,freq>=5),aes(x=reorder(word,freq),y=freq,fill=word))+
   geom_col(show.legend = FALSE)+
   labs(x='',y='')+
   coord_flip()
+
+#트럼프 대통령 취임사전문을 수집해서 말뭉치로 변환한 후 정제 작업을 통해 
+#document-term matrix를 생성한 후 시각화하기. 감성분석도 수행. 
+html <- read_html("https://trumpwhitehouse.archives.gov/briefings-statements/the-inaugural-address/")
+trump <- html_nodes(html,'div.page-content__wrap>div>p')%>%html_text()
+trump <- trump[c(-1,-2)]
+write(trump,file='c:/data_bigdata/trump.txt')
+readLines('c:/data_bigdata/trump.txt')
+#vector로 변환
+text <- paste(trump,collapse=' ')
+#corpus로 변환
+trump_corpus <- VCorpus(VectorSource(text))
+#corpus파일 파일로 저장
+writeCorpus(trump_corpus,path='c:/data_bigdata',filenames = 'trump_corpus.txt')
+#corpus 파일 불러오기
+trump_corpus <- Corpus(URISource('c:/data_bigdata/trump_corpus.txt'))
+
+#특수문자 주변 글자 확인 후 제거
+#<u+숫자>제거
+lapply(trump_corpus,function(x) str_extract_all(x$content,'<\\w+\\+\\d+>'))
+trump_corpus <- tm_map(trump_corpus,content_transformer(function(x) gsub('<\\w+\\+\\d+>',' ',x)))
+
+#"D.C." 는 남겨야함.
+lapply(trump_corpus,function(x) str_extract_all(x$content,'[^\\s]+[[:punct:]]+[^\\s]+'))
+lapply(trump_corpus,function(x) str_extract_all(x$content,'(D.C.)'))
+trump_corpus <- tm_map(trump_corpus,content_transformer(function(x) gsub('(D.C.)','DdotCdot',x)))
+
+#특수문자 제거('s 're등 다른 항목과 붙어 있는 항목 먼저 제거)
+lapply(trump_corpus,function(x) str_extract_all(x$content,'[[:punct:]]+[^\\s]+'))
+lapply(trump_corpus,function(x) str_extract_all(x$content,'’+s'))
+lapply(trump_corpus,function(x) str_extract_all(x$content,'[^\\s]+[[:punct:]]+'))
+trump_corpus <- tm_map(trump_corpus,content_transformer(function(x) gsub('’+s',' ',x)))
+trump_corpus <- tm_map(trump_corpus,content_transformer(function(x) gsub('’+ve',' ',x)))
+trump_corpus<- tm_map(trump_corpus,removePunctuation)
+#그림으로 되어있는 특수문자 제거
+lapply(trump_corpus,content)
+lapply(trump_corpus,function(x) str_extract_all(x$content,'[[:punct:]]'))
+trump_corpus <- tm_map(trump_corpus, content_transformer(function(x) gsub('“|”',' ',x)))
+#D.C. 다시 돌려놓기
+lapply(trump_corpus,function(x) str_extract_all(x$content,'Washington DdotCdot'))
+trump_corpus <- tm_map(trump_corpus,content_transformer(function(x) gsub('DdotCdot','D.C.',x)))
+#대문자 단어 출력
+unique(unlist(lapply(trump_corpus,function(x) str_extract_all(x$content,'[A-Z]+[a-z]+'))))
+#이중에 이름이나 국가명은 다시 대문자로 변경해줘야함 
+#Roberts, Carter, Clinton, Bush, Obama, Americans, America, Michelle, Washington, Nebraska
+name<-c('Roberts', 'Carter', 'Clinton', 'Bush', 'Obama', 'Americans', 'America', 
+        'Michelle', 'Washington', 'Nebraska')
+for (i in 1:length(name)){
+  trump_corpus <- tm_map(trump_corpus,content_transformer(function(x) 
+    gsub(name[i],paste0('수정',name[i]),x)))
+}
+lapply(trump_corpus,content)
+lapply(trump_corpus,function(x) str_extract_all(x$content,'[가-힣]+[A-Z]+[a-z]+'))
+
+#모두 소문자로 변경
+trump_corpus <- tm_map(trump_corpus,content_transformer(tolower))
+
+#이름을 모두 대문자로 변경
+name<-c('Roberts', 'Carter', 'Clinton', 'Bush', 'Obama', 'Americans', 'America', 
+        'Michelle', 'Washington', 'Nebraska')
+lower_name <-tolower(name)
+
+lapply(trump_corpus,function(x) str_extract_all(x$content,'[가-힣]+[A-z]+'))
+for(i in 1:length(name)){
+  trump_corpus <- tm_map(trump_corpus,content_transformer(function(x) gsub(paste0('수정',lower_name[i]),name[i],x)))
+}
+
+trump_corpus <- tm_map(trump_corpus,content_transformer(function(x) gsub('수정Americans','Americans',x)))
+
+lapply(trump_corpus,content)
+lapply(trump_corpus,function(x) str_extract_all(x$content,'[A-Z]+[a-z]+'))
+#불용어 삭제
+trump_corpus <-  tm_map(trump_corpus,removeWords,stopwords())
+trump_corpus <-  tm_map(trump_corpus,removeWords,c('will','us'))
+#연속되는 두개이상 공백 제거
+trump_corpus <- tm_map(trump_corpus,stripWhitespace)
+
+#dtm 생성
+trump_dtm <- DocumentTermMatrix(trump_corpus)
+trump_freq <- colSums(as.matrix(trump_dtm))
+#시각화
+wordcloud(words=names(trump_freq),freq=trump_freq,
+          min.freq = 2,
+          colors = brewer.pal(8,'Set2'))
+
+trump_df <- data.frame(word=names(trump_freq),freq=trump_freq)
+head(trump_df)
+wordcloud2(trump_df)
+
+trump_sentiment <- merge(trump_df,get_sentiments('nrc'),by='word')
+head(trump_sentiment)
+aggregate(word~sentiment,trump_sentiment,length)
+
+#compare wordcloud 생성
+library(reshape2)
+df_compar<- acast(trump_sentiment,word~sentiment,value.var='freq',fill=0)
+windows(width=10,height=10)
+wordcloud::comparison.cloud(df_compar,
+                            title.size = 1,
+                            colors = c('red','blue','yellow','black','green','violet','darkgreen','darkblue','orange','darkgray'),
+                            title.bg.colors = 'gray',
+                            title.colors=c('red','blue','yellow','black','green','violet','darkgreen','darkblue','orange','darkgray'),
+                            max.words = 100)
