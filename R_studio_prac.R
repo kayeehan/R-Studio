@@ -1299,3 +1299,108 @@ wordcloud::comparison.cloud(df_compar,
                             title.bg.colors = 'gray',
                             title.colors=c('red','blue','yellow','black','green','violet','darkgreen','darkblue','orange','darkgray'),
                             max.words = 100)
+
+#네이버 영화 랭킹 조회수 1~5위까지 감상평을 추출하여 긍정과 부정 단어수를 비교하기
+library(rvest)
+library(RSelenium)
+remdr<-remoteDriver(remoteServerAddr='localhost',port=7777,browserName='chrome')
+
+remdr<-remoteDriver(remoteServerAddr='localhost',port=7777,browserName='chrome')
+remdr$open()
+remdr$navigate('https://movie.naver.com/movie/sdb/rank/rmovie.naver')
+result <- data.frame()
+for (k in 1:10){
+  #영화 순서대로 클릭하기
+  remdr$findElement(using='xpath',paste0('//*[@id="old_content"]/table/tbody/tr[',k+1,']/td[2]/div/a'))$clickElement()
+  #감상평 더보기 클릭
+  remdr$findElement(using='xpath','//*[@id="content"]/div[1]/div[4]/div[5]/div[2]/a')$clickElement()
+  html <- read_html(remdr$getPageSource()[[1]])
+  Sys.sleep(2)
+  #제목가져오기
+  name<- html_node(html,'h3.h_movie>a')%>%html_text()
+  #댓글이 있는 url 가져오기, html read하기
+  url <- html_nodes(html,'div.ifr_module2>iframe.ifr')%>%html_attr('src')
+  page <- read_html(paste0('http://movie.naver.com',url))
+  #다른 페이지 url도 가져오고 html_read하기
+  pages <-paste0('http://movie.naver.com',unique(html_nodes(page,'div.paging>div>a')%>%html_attr('href')))
+  score <-c()
+  review <-c()
+  movie<-data.frame()
+  for(i in 1:length(pages)){
+    tmp <- read_html(pages[i])
+    review <-c(review,html_nodes(tmp,'div.score_reple>p')%>%html_text()%>%trimws()%>%str_remove_all('^관람객')%>%trimws())
+  }
+  movie <- paste(review,collapse = ' ')
+  result <- rbind(result,data.frame(name=name, review=movie))
+  remdr$navigate('https://movie.naver.com/movie/sdb/rank/rmovie.naver')
+  Sys.sleep(1)
+}
+movie <- result
+View(result)
+result <- movie
+str_extract_all(result$review,'스포일러가 포함된 감상평입니다. 감상평 보기')
+result$review <- gsub('스포일러가 포함된 감상평입니다. 감상평 보기',' ',result$review)%>%str_squish()
+result$review
+
+str_extract_all(result$review,'[ㄱ-ㅎㅏ-ㅣ]')
+result$review <- gsub('[ㄱ-ㅎㅏ-ㅣ]',' ',result$review)
+
+str_extract_all(result$review,'\\(+\\W+\\)+')
+result$review <- gsub('\\(+\\w+\\)+',' ',result$review)
+
+str_extract_all(result$review,'[~\\.\\?,!]')
+result$review <- gsub('[~\\.\\?,!]+',' ',result$review)
+
+str_extract_all(result$review,'\\(+[\\w\\s\\d]+\\)+')
+result$review <- str_replace_all(result$review,'\\(+[\\w\\s\\d]+\\)+',' ')
+
+str_extract_all(result$review,'[가-힣\\d]*[A-z]+[가-힣]*')
+str_extract_all(result$review,'OO인가|^^|\\[서창대의|미디어화\\]|bb|ENTP로써|\\[|\\]|\\d*\\^+|[A-z]$')
+result$review <- str_replace_all(result$review,'OO인가|^^|\\[서창대의|미디어화\\]|bb|ENTP로써|\\[|\\]|\\d*\\^+|[A-z]$',' ')
+str_extract_all(result$review,'(cg)')
+result$review <- gsub('(cg)','CG',result$review)
+str_extract_all(result$review,'(ost|OST)[가-힣]*')
+result$review <- gsub('(ost|OST)[가-힣]*','OST',result$review)
+
+str_extract_all(result$review,'\\w+(배우)+\\w*')
+str_extract_all(result$review,'별로네요중국배우는')
+result$review <- str_replace_all(result$review,'별로네요중국배우는','별로네요 중국배우는')
+result$review <- str_replace_all(result$review,'재밌었어요배우분들','재밌었어요 배우분들')
+result$review <- str_replace_all(result$review,'멋지고배우분들','멋지고 배우분들')
+result$review <- str_replace_all(result$review,'최고예요박소담배우','최고예요 박소담배우')
+result$review <- str_replace_all(result$review,'\\w+(배우)+\\w*',' ')
+str_extract_all(result$review,':|"|<|>|…')
+result$review <- str_replace_all(result$review,':|"|<|>|…',' ')
+str_extract_all(result$review,'\\s+\\d\\s+')
+result$review <- str_replace_all(result$review,'\\s+\\d\\s+',' ')
+str_extract_all(result$review,"'|'")
+result$review <- str_replace_all(result$review,"'|'",' ')
+str_extract_all(result$review,"\\d+\\w+")
+result$review <- str_replace_all(result$review,"'|'",' ')
+result$review
+
+corpus <- tm::VCorpus(VectorSource(result$review))
+lapply(corpus,content)
+
+stopword <- readLines('c:/data_bigdata/korean_stopwords.txt',encoding='UTF-8')
+stopword <-c(stopword,'…',';')
+lapply(tm_map(corpus,removeWords,stopword),content)
+length(corpus)
+corpus <- tm_map(corpus,removeWords,stopword)
+tm::VCorpus(VectorSource(result$review[1]))
+tmp<-list()
+sentiment <-list()
+for (i in 1:nrow(result)){
+  corpus <- tm::VCorpus(VectorSource(result$review[i]))
+  corpus <- tm_map(corpus,removeWords,stopword)
+  corpus_dtm <- DocumentTermMatrix(corpus)
+  termfreq <- colSums(as.matrix(corpus_dtm))
+  termdf <- data.frame(termfreq)
+  termdf$word <-rownames(termdf) 
+  rownames(termdf) <-NULL
+  termdf <- termdf[,c(2,1)]
+  tmp[[i]]  <- merge(termdf,k_sentiment_dic,by='word')
+  sentiment[[i]] <- aggregate(word~sentiment,tmp[[i]],length)
+}
+sentiment
+tmp
