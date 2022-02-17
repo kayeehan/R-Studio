@@ -1404,3 +1404,19 @@ for (i in 1:nrow(result)){
 }
 sentiment
 tmp
+
+#preview 함수 만들어보기
+preview <-function(x,pattern){
+  y<- as.vector(unlist(lapply(x, function(x) str_extract_all(x$content,pattern))))
+  print(y)
+}
+
+preview(sms_corpus_clean,'\\d+')
+#count 함수 만들어보기
+
+countmargin2 <- function(x){
+  apply(x,MARGIN=2,function(y) ifelse(y>0,'YES','NO'))
+}
+countmargin2(sms_dtm_train)
+
+
