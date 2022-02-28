@@ -1420,3 +1420,151 @@ countmargin2 <- function(x){
 countmargin2(sms_dtm_train)
 
 
+#MBTI 변수 생성 후 각 MBTI 데이터 크롤링
+MBTI <- c('INTJ','INTP','ENTJ','ENTP','INFJ','INFP','ENFJ','ENFP',
+          'ISTJ','ISFJ','ESTJ','ESFJ','ISTP','ISFP','ESTP','ESFP')
+library(RSelenium)
+library(rvest)
+library(stringr)
+library(remotes)
+remdr<-remoteDriver(remoteServerAddr='localhost',port=7777,browserName='chrome')
+
+i<-'INTJ'
+remdr$open()
+remdr$navigate(paste0('https://www.google.com/search?q="',i,'+특징"'))
+html<- read_html(remdr$getPageSource()[[1]])
+url <- html_nodes(html,'div.yuRUbf>a')%>%html_attr('href')
+#페이지 이동
+remdr$findElement(using='css',value='tbody>tr>td:nth-child(3)')$clickElement()
+html<- read_html(remdr$getPageSource()[[1]])
+url <- c(url,html_nodes(html,'div.yuRUbf>a')%>%html_attr('href'))
+
+paste0("MBTI_",i)
+
+#MBTI 변수 생성
+MBTI <- c('INTJ','INTP','ENTJ','ENTP','INFJ','INFP','ENFJ','ENFP',
+          'ISTJ','ISFJ','ESTJ','ESFJ','ISTP','ISFP','ESTP','ESFP')
+
+#각 검색어에서 URL을 추출하는 for문 생성 로봇체크로 인해 쪼개서 생성함
+remdr$open()
+for (i in MBTI[1:3]){
+  remdr$navigate(paste0('https://www.google.com/search?q="',i,'+특징"'))
+  html<- read_html(remdr$getPageSource()[[1]])
+  Sys.sleep(2)
+  url <- html_nodes(html,'div.yuRUbf>a')%>%html_attr('href')
+  for (j in 1:10){
+    try(remdr$findElement(using='xpath',value='//*[@id="pnnext"]')$clickElement(),silent=T)
+    html<- read_html(remdr$getPageSource()[[1]])
+    Sys.sleep(8)
+    url <- c(url,html_nodes(html,'div.yuRUbf>a')%>%html_attr('href'))
+    Sys.sleep(2)
+  }
+  assign(paste0("URL_",i), c(get(paste0('URL_',i)),unique(url)))
+  write(get(paste0('URL_',i)),file=paste0('c:/data_bigdata/URL_',i,'.txt'))
+  Sys.sleep(2)
+}
+
+for (i in MBTI[4:6]){
+  remdr$navigate(paste0('https://www.google.com/search?q="',i,'+특징"'))
+  html<- read_html(remdr$getPageSource()[[1]])
+  Sys.sleep(2)
+  url <- html_nodes(html,'div.yuRUbf>a')%>%html_attr('href')
+  for (j in 1:10){
+    try(remdr$findElement(using='xpath',value='//*[@id="pnnext"]')$clickElement(),silent=T)
+    html<- read_html(remdr$getPageSource()[[1]])
+    Sys.sleep(8)
+    url <- c(url,html_nodes(html,'div.yuRUbf>a')%>%html_attr('href'))
+    Sys.sleep(2)
+  }
+  assign(paste0("URL_",i), c(get(paste0('URL_',i)),unique(url)))
+  write(get(paste0('URL_',i)),file=paste0('c:/data_bigdata/URL_',i,'.txt'))
+  Sys.sleep(2)
+}
+
+for (i in MBTI[7:10]){
+  remdr$navigate(paste0('https://www.google.com/search?q="',i,'+특징"'))
+  html<- read_html(remdr$getPageSource()[[1]])
+  Sys.sleep(5)
+  url <- html_nodes(html,'div.yuRUbf>a')%>%html_attr('href')
+  for (j in 1:10){
+    try(remdr$findElement(using='xpath',value='//*[@id="pnnext"]')$clickElement(),silent=T)
+    Sys.sleep(10)
+    html<- read_html(remdr$getPageSource()[[1]])
+    url <- c(url,html_nodes(html,'div.yuRUbf>a')%>%html_attr('href'))
+    Sys.sleep(2)
+  }
+  assign(paste0("URL_",i), c(get(paste0('URL_',i)),unique(url)))
+  write(get(paste0('URL_',i)),file=paste0('c:/data_bigdata/URL_',i,'.txt'))
+  Sys.sleep(2)
+}
+
+for (i in MBTI[11:16]){
+  remdr$navigate(paste0('https://www.google.com/search?q="',i,'+특징"'))
+  Sys.sleep(15)
+  html<- read_html(remdr$getPageSource()[[1]])
+  url <- html_nodes(html,'div.yuRUbf>a')%>%html_attr('href')
+  for (j in 1:10){
+    try(remdr$findElement(using='xpath',value='//*[@id="pnnext"]')$clickElement(),silent=T)
+    Sys.sleep(10)
+    html<- read_html(remdr$getPageSource()[[1]])
+    url <- c(url,html_nodes(html,'div.yuRUbf>a')%>%html_attr('href'))
+    Sys.sleep(2)
+  }
+  assign(paste0("URL_",i), c(get(paste0('URL_',i)),unique(url)))
+  write(get(paste0('URL_',i)),file=paste0('c:/data_bigdata/URL_',i,'.txt'))
+}
+
+str_extract(get(paste0('URL_',MBTI[7])),'.+html$')
+
+eval(as.symbol(paste0('URL_',MBTI[16])))
+get(paste0('URL_',MBTI[16]))[1:5]
+
+#각 url에서 텍스트 추출하는 for문 생성
+error_files<-c()
+MBTI_text <-data.frame()
+remdr$open()
+for (i in MBTI[1]){
+  text <- c()
+  for (k in 1:length(get(paste0('URL_',i)))){
+    #remdr$navigate(get(paste0('URL_',i))[k])
+    #Sys.sleep(30)
+    tryCatch(tmp <- read_html(get(paste0('URL_',i))[k]),mode='wb',error=function(arg){error_files<<-c(error_files,get(paste0('URL_',i))[k])})
+    xml2::xml_remove(html_nodes(tmp,'footer'))
+    xml2::xml_remove(html_nodes(tmp,'figure'))
+    xml2::xml_remove(html_nodes(tmp,'style')) 
+    xml2::xml_remove(html_nodes(tmp,'button'))
+    xml2::xml_remove(html_nodes(tmp,'script'))
+    text_tmp <- html_nodes(tmp,'body>div')%>%html_text()%>%str_squish()
+    text_tmp <- str_remove_all('본문 바로가기|공감한 사람\\W+공유하기$|\\W+이웃추가$|티스토리툴바')
+    text <- c(text,na.omit(text_tmp))
+    Sys.sleep(5)
+  }
+  MBTI_text <- rbind(MBTI_text,data.frame(type=i,text=text))
+}
+View(MBTI_text)
+MBTI_text$text=='^\\s$'
+is.na(text)
+
+str_extract_all(MBTI_text$text,'본문 바로가기|^공감[\\w\\d\\W]+공유하기$|.+이웃추가$|티스토리툴바')
+
+grep('naver',get(paste0('URL_',i)),value=T)
+
+eval(as.symbol(paste0('URL_',i)))
+get(paste0('URL_',MBTI[16]))[2]
+
+tryCatch(tmp <- read_html(get(paste0('URL_',MBTI[16]))[1]),mode='wb',error=function(arg){error_files<<-c(error_files,url[i])})
+text_tmp <- html_nodes(tmp,'body>div')%>%html_text()
+text_tmp <- str_replace_all(text_tmp,'([[:punct:]]*[A-Za-z]{5,}[[:punct:]]*|[[:punct:]]+[A-Za-z]{2,3}[[:punct:]]*)',' ')
+text_tmp <- str_replace_all()
+text <- c(text,text_tmp)
+text$type <- i
+MBTI_text <- rbind(MBTI_text,text)
+
+tryCatch(tmp <- read_html(get(paste0('URL_',MBTI[16]))[2]),mode='wb',error=function(arg){error_files<<-c(error_files,url[i])})
+text_tmp <- html_nodes(tmp,'body>div')%>%html_text()
+text_tmp <- str_replace_all(text_tmp,'([[:punct:]]*[A-Za-z]{5,}[[:punct:]]*|[[:punct:]]+[A-Za-z]{2,3}[[:punct:]]*)',' ')
+text_tmp <- str_replace_all()
+text <- c(text,text_tmp)
+text$type <- i
+MBTI_text <- rbind(MBTI_text,text)
+View(MBTI_text)
